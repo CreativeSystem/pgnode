@@ -1,13 +1,30 @@
 import './env'
 import { Pool, PoolClient } from 'pg'
-
 import faker from 'faker'
+import readline from 'readline'
+
 
 type User = {
   id:number,
   nome: string,
   email:string
 }
+
+const MENU = `Selecione uma opção:
+
+1 - Insert
+2 - Update
+3 - Delete
+4 - Select
+0 - Sair 
+
+Selecione uma opção:
+`
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
 
 const pool = new Pool({
   connectionString : process.env.DATABASE_URL
@@ -68,12 +85,47 @@ function print(users: User[]){
   
 }
 
-pool.connect().then( async (client) => {
-  await insert(client);
-  await select(client);
-  await update(client);
-  await select(client);
-  await remove(client);
-  await select(client);
-})
+async function connectDB(){
+  return await pool.connect();
+}
 
+async function ask(question:string) {
+  return new Promise((resolve, reject)=>{
+    try{
+      rl.question(question,(answer)=> resolve(answer));
+    }catch(err){
+      reject(err)
+    }
+  });
+}
+
+async function main(){
+  const client = await connectDB();
+  let option = null
+  do{
+    option = await ask(MENU);
+    console.log('')
+    switch(option){
+      case '1':
+        await insert(client)
+        break;
+      case '2':
+        await update(client)
+        break;
+      case '3':
+        await remove(client)
+        break;
+      case '4':
+        await select(client)
+        break;
+    }
+
+  }while(option !== '0')
+
+
+  rl.close()
+  pool.end()
+  process.exit(0)
+}
+
+main();
